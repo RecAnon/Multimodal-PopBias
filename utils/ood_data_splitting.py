@@ -5,7 +5,6 @@ import numpy as np
 
 DATASETS_PATH = "./data"
 
-
 def get_train_core(df, core_size):
     """
     Extract core of size core_size from interaction data to ensure

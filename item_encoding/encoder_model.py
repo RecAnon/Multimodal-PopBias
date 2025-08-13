@@ -89,7 +89,6 @@ class Encoder(object):
                 losses.append(cl_loss.item())
                 if self.decay_lr:
                     scheduler.step()
-            avg_loss = np.mean(losses)
 
         with torch.no_grad():
             self.user_emb, self.item_emb = self.model.eval()(perturbed=False)

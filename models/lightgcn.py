@@ -17,7 +17,6 @@ import torch.nn as nn
 
 from common.abstract_recommender import GeneralRecommender
 from common.loss import BPRLoss, EmbLoss
-from common.init import xavier_uniform_initialization
 
 
 class LightGCN(GeneralRecommender):

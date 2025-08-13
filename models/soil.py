@@ -10,7 +10,6 @@ import torch.nn.functional as F
 from common.abstract_recommender import GeneralRecommender
 from utils.soil_utils import (
     build_sim,
-    build_mixed_graph,
     build_non_zero_graph,
     build_knn_normalized_graph,
     build_graph_from_adj,

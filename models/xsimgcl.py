@@ -1,9 +1,6 @@
 # coding: utf-8
 # @email: enoche.chow@gmail.com
 
-
-import os
-import random
 import numpy as np
 import scipy.sparse as sp
 import torch

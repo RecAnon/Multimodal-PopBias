@@ -15,9 +15,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from common.abstract_recommender import GeneralRecommender
-from common.loss import BPRLoss, EmbLoss, L2Loss
-from utils.utils import build_sim, compute_normalized_laplacian
-
 
 class FREEDOM(GeneralRecommender):
     def __init__(self, config, dataset):

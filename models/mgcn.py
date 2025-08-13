@@ -18,8 +18,6 @@ import torch.nn.functional as F
 from common.abstract_recommender import GeneralRecommender
 from utils.utils import (
     build_sim,
-    compute_normalized_laplacian,
-    build_knn_neighbourhood,
     build_knn_normalized_graph,
 )
 
