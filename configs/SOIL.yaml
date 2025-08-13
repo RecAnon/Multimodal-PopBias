@@ -16,7 +16,6 @@ learning_rate: 0.001
 cl_loss: [0.001,0.01,0.1]
 cl_loss2: [0.001,0.01,0.1]
 
-
 hyper_parameters: ["cl_loss","cl_loss2","knn_i","knn_a"]
 
 # training settings

@@ -10,7 +10,6 @@ reg_weight: 1.e-04
 knn_k: [10,15,20,25,30]
 
 learning_rate: 0.001
-
 cl_loss: [0.001,0.01,0.1]
 hyper_parameters: ["cl_loss","knn_k"]
 

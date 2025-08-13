@@ -6,6 +6,7 @@ reg_weight: 0.0
 num_fc_layers: 4
 hidden_dim: 512
 act_fn: 'tanh'
+
 v_dropout: 0
 t_dropout: 0
 alpha1: 0.5
