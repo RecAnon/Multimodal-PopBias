@@ -50,9 +50,9 @@ def get_knn_scores(
             item_emb[batch_num * batch_size : (batch_num + 1) * batch_size] @ item_emb.T
         )
         # Omit self loops in neighbor calculations
-        knn_val, knn_ind = torch.topk(item_vec_sim, knn_k+1, dim=-1)
-        vals.append(knn_val[:,1:])
-        inds.append(knn_ind[:,1:])
+        knn_val, knn_ind = torch.topk(item_vec_sim, knn_k + 1, dim=-1)
+        vals.append(knn_val[:, 1:])
+        inds.append(knn_ind[:, 1:])
         del item_vec_sim
         torch.cuda.empty_cache()
     knn_val = torch.cat(vals).cuda()
@@ -109,13 +109,13 @@ def get_raw_scores(
     return raw_scores
 
 
-def get_pc_output(tst_scores,dataset,model):
+def get_pc_output(tst_scores, dataset, model):
     """
     Calculates popularity compensation post-processing scores (reference [75] in paper).
     """
     out = {}
-    for alpha in np.arange(0.1,1.6,0.1):
-        for beta in np.arange(0.1,1.1,0.1):
+    for alpha in np.arange(0.1, 1.6, 0.1):
+        for beta in np.arange(0.1, 1.1, 0.1):
             C = inv_degs_arr * (tst_scores * beta + 1 - beta)
             pc_scores = tst_scores + alpha * C * (
                 torch.norm(tst_scores, dim=1, keepdim=True)
@@ -123,65 +123,79 @@ def get_pc_output(tst_scores,dataset,model):
             )
             res = get_results(pc_scores, k=20)
             out[(alpha, beta)] = res
-    with open('%s/%s/outputs/%s_PC.pkl'%(DATASETS_PATH,dataset,model),'wb') as f:
-                pickle.dump(out,f)
+    with open("%s/%s/outputs/%s_PC.pkl" % (DATASETS_PATH, dataset, model), "wb") as f:
+        pickle.dump(out, f)
     return out
 
-def run_edge(item_emb,lmbda,alpha,beta,tau,popularity,head):
+
+def run_edge(item_emb, lmbda, alpha, beta, tau, popularity, head):
     norm_orig = torch.norm(item_emb, dim=1) + 1e-12
-    item_emb_unit = item_emb / norm_orig[:,None]
+    item_emb_unit = item_emb / norm_orig[:, None]
 
     if lmbda > 0:
         sim = torch.mm(item_emb_unit, item_emb_unit[head].t())
         sim = torch.softmax(sim / max(tau, 0.01), dim=1)
 
         item_emb_att = torch.mm(sim, item_emb_unit[head])
-        item_emb_att = item_emb_att / (torch.norm(item_emb_att, dim=1) + 1e-12)[:,None]
+        item_emb_att = item_emb_att / (torch.norm(item_emb_att, dim=1) + 1e-12)[:, None]
 
         item_emb_adj = item_emb_unit + lmbda * item_emb_att
-        item_emb_adj = item_emb_adj / (torch.norm(item_emb_adj, dim=1) + 1e-12)[:,None]
+        item_emb_adj = item_emb_adj / (torch.norm(item_emb_adj, dim=1) + 1e-12)[:, None]
 
     else:
         item_emb_adj = item_emb_unit
-        
-    norm = ((popularity + 1) ** beta) * (norm_orig ** (1 - alpha))
-    return item_emb_adj * norm[:,None]
 
-def edge_full(model,dataset,combos,inter_matrix_batch_mask,data,popularity,long_tail,head,
-              betas = [0.0,0.1,0.2],
-        alphas = [0.0,0.2,0.4,0.6,0.8,1.0],
-        taus = [0.05,0.1,0.2],
-        lmbdas = [0.0, 0.2, 0.4,0.6, 0.8,1.0, 1.2,1.4, 1.6,1.8, 2.0]):
-    
+    norm = ((popularity + 1) ** beta) * (norm_orig ** (1 - alpha))
+    return item_emb_adj * norm[:, None]
+
+
+def edge_full(
+    model,
+    dataset,
+    combos,
+    inter_matrix_batch_mask,
+    data,
+    popularity,
+    long_tail,
+    head,
+    betas=[0.0, 0.1, 0.2],
+    alphas=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+    taus=[0.05, 0.1, 0.2],
+    lmbdas=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0],
+):
+
     model_user, model_item = torch.load(
         "%s/model_files/%s_ood_%s.pt" % (DATASETS_PATH, dataset, model)
     )
-    
-    combos = list(product(*(betas,alphas,taus,lmbdas)))
-    for i,c in enumerate(combos):
-            c = list(c)
-            if c[-1] == 0:
-                c[-2] = 0.05
-            combos[i] = tuple(c)
+
+    combos = list(product(*(betas, alphas, taus, lmbdas)))
+    for i, c in enumerate(combos):
+        c = list(c)
+        if c[-1] == 0:
+            c[-2] = 0.05
+        combos[i] = tuple(c)
     combos = sorted(set(combos))
-    
+
     results = {}
-    for i,(beta,alpha,tau,lmbda) in enumerate(combos):
-        edge_item_emb = run_edge(model_item,lmbda,alpha,beta,tau,popularity,head)
+    for i, (beta, alpha, tau, lmbda) in enumerate(combos):
+        edge_item_emb = run_edge(model_item, lmbda, alpha, beta, tau, popularity, head)
         model_pred = model_user[[int(k) for k in data.user]] @ edge_item_emb.T
-        scores = model_pred+inter_matrix_batch_mask
-        res = get_results(scores,data,long_tail)
-        results[(beta,alpha,tau,lmbda)] = res
-        if (i+1)%20 == 0:
-            print(model,i+1,"%.2f, %.2f, %.2f, %.2f" % (beta,alpha,tau,lmbda),res)
-            with open('%s/%s/outputs/%s_EDGE.pkl'%(DATASETS_PATH,dataset,model),'wb') as f:
-                pickle.dump(results,f)
+        scores = model_pred + inter_matrix_batch_mask
+        res = get_results(scores, data, long_tail)
+        results[(beta, alpha, tau, lmbda)] = res
+        if (i + 1) % 20 == 0:
+            print(
+                model, i + 1, "%.2f, %.2f, %.2f, %.2f" % (beta, alpha, tau, lmbda), res
+            )
+            with open(
+                "%s/%s/outputs/%s_EDGE.pkl" % (DATASETS_PATH, dataset, model), "wb"
+            ) as f:
+                pickle.dump(results, f)
 
     return results
 
-def get_ensemble(
-    m_scores, cb_scores, alphas
-):
+
+def get_ensemble(m_scores, cb_scores, alphas):
     """
     Calculates performance of ensemble for varying values of alpha
     """
@@ -207,9 +221,7 @@ def get_item_popularity_info(data):
     return long_tail, inv_degs_arr
 
 
-def run_ensemble(
-    dataset
-):
+def run_ensemble(dataset):
     global data, long_tail, inv_degs_arr
 
     item_content = torch.from_numpy(np.load("./%s/feats_concat.npy" % (dataset)))
@@ -223,7 +235,6 @@ def run_ensemble(
     inter_matrix_batch = sparse_mx_to_torch_tensor(inter_matrix_input)
     inter_matrix_batch_zero = 1 + 1e-10 - inter_matrix_batch
     inter_matrix_batch_mask = -1e10 * inter_matrix_batch
-
 
     long_tail, inv_degs_arr = get_item_popularity_info(data)
 
@@ -249,9 +260,16 @@ def run_ensemble(
     out_test = {k: {} for k in cb_scores_dict}
     out_validation = {k: {} for k in cb_scores_dict}
     for m in models:
-        m_scores = F.normalize(get_warm_model_pred(dataset, inter_matrix_batch_zero, m))+inter_matrix_batch_mask
+        m_scores = (
+            F.normalize(get_warm_model_pred(dataset, inter_matrix_batch_zero, m))
+            + inter_matrix_batch_mask
+        )
         for cb_model, cb_scores in cb_scores_dict.items():
-            alphas = np.arange(0.02,0.32,0.02) if cb_model == 'Encoded-KNN' else np.arange(0.04,0.64,0.04)
+            alphas = (
+                np.arange(0.02, 0.32, 0.02)
+                if cb_model == "Encoded-KNN"
+                else np.arange(0.04, 0.64, 0.04)
+            )
             m_ensemble_test, m_ensemble_validation = get_ensemble(
                 m_scores,
                 cb_scores,

@@ -5,6 +5,7 @@ import numpy as np
 from collections import defaultdict
 import scipy.sparse as sp
 
+
 class DataLoader(object):
     def __init__(self):
         pass

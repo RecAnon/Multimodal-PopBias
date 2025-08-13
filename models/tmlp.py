@@ -10,6 +10,7 @@ from torch_geometric.utils import remove_self_loops, degree
 
 from common.abstract_recommender import GeneralRecommender
 
+
 class TMLP(GeneralRecommender):
     def __init__(self, config, dataset):
         super(TMLP, self).__init__(config, dataset)
@@ -140,10 +141,7 @@ class TMLP(GeneralRecommender):
             act_fn=self.act_fn,
         )
         self.v_preference, self.t_preference = None, None
-        adj_tensor_path = os.path.join(
-            dataset_path,
-            config["adj_tensor_path"]
-        )
+        adj_tensor_path = os.path.join(dataset_path, config["adj_tensor_path"])
         self.adj_tensor = torch.load(adj_tensor_path).to(self.device)
 
         self.preference = self.gcn.preference
@@ -320,7 +318,7 @@ class GCN(torch.nn.Module):
             nn.init.xavier_normal_(
                 torch.tensor(
                     np.random.randn(num_user, self.dim_latent * 3),
-                    #np.random.randn(num_user, self.dim_latent),
+                    # np.random.randn(num_user, self.dim_latent),
                     dtype=torch.float32,
                     requires_grad=True,
                 ),
@@ -372,28 +370,31 @@ class Base_gcn(MessagePassing):
         return "{}({},{})".format(
             self.__class__.__name__, self.in_channels, self.out_channels
         )
-    
+
+
 class GMLP(nn.Module):
-    def __init__(self, input_dim, hid_dim, dropout, output_dim=64, num_fc_layers=3, act_fn='gelu'):
+    def __init__(
+        self, input_dim, hid_dim, dropout, output_dim=64, num_fc_layers=3, act_fn="gelu"
+    ):
         super(GMLP, self).__init__()
         self.fc_layers = nn.ModuleList()
         for i in range(num_fc_layers):
             in_features = input_dim if i == 0 else hid_dim
             out_features = hid_dim if i < num_fc_layers - 1 else output_dim
             self.fc_layers.append(nn.Linear(in_features, out_features))
-        
+
         # Dictionary of activation functions
         activation_functions = {
-            'relu': F.relu,
-            'leaky_relu': F.leaky_relu,
-            'gelu': F.gelu,
-            'tanh': torch.tanh,
-            'sigmoid': torch.sigmoid,
-            'elu': F.elu,
-            'selu': F.selu,
-            'softplus': F.softplus
+            "relu": F.relu,
+            "leaky_relu": F.leaky_relu,
+            "gelu": F.gelu,
+            "tanh": torch.tanh,
+            "sigmoid": torch.sigmoid,
+            "elu": F.elu,
+            "selu": F.selu,
+            "softplus": F.softplus,
         }
-        
+
         # Set the activation function
         if act_fn in activation_functions:
             self.act_fn = activation_functions[act_fn]
@@ -402,7 +403,7 @@ class GMLP(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
         self.layernorm = nn.LayerNorm(hid_dim, eps=1e-6)
-        
+
         self._init_weights()
 
     def _init_weights(self):

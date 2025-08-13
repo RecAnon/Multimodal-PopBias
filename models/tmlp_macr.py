@@ -10,6 +10,7 @@ from torch_geometric.utils import remove_self_loops, degree
 
 from common.abstract_recommender import GeneralRecommender
 
+
 class TMLP_MACR(GeneralRecommender):
     def __init__(self, config, dataset):
         super(TMLP_MACR, self).__init__(config, dataset)
@@ -57,12 +58,12 @@ class TMLP_MACR(GeneralRecommender):
             self.device
         ), self.edge_values.to(self.device)
         self.edge_full_indices = torch.arange(self.edge_values.size(0)).to(self.device)
-        
+
         self.item_id_embedding = nn.Embedding(self.n_items, self.embedding_dim)
         nn.init.xavier_uniform_(self.item_id_embedding.weight)
 
-        self.w = nn.Embedding(3*self.embedding_dim, 1)
-        self.w_user = nn.Embedding(3*self.embedding_dim, 1)
+        self.w = nn.Embedding(3 * self.embedding_dim, 1)
+        self.w_user = nn.Embedding(3 * self.embedding_dim, 1)
         nn.init.xavier_normal_(self.w.weight)
         nn.init.xavier_normal_(self.w_user.weight)
 
@@ -152,10 +153,7 @@ class TMLP_MACR(GeneralRecommender):
             act_fn=self.act_fn,
         )
         self.v_preference, self.t_preference = None, None
-        adj_tensor_path = os.path.join(
-            dataset_path,
-            config["adj_tensor_path"]
-        )
+        adj_tensor_path = os.path.join(dataset_path, config["adj_tensor_path"])
         self.adj_tensor = torch.load(adj_tensor_path).to(self.device)
         self.preference = self.gcn.preference
 
@@ -222,7 +220,7 @@ class TMLP_MACR(GeneralRecommender):
         user_rep = all_rep[: self.num_user]
 
         return user_rep, item_rep
-    
+
     def calculate_loss(self, interaction):
         users = interaction[0]
         pos_items = interaction[1]
@@ -240,29 +238,33 @@ class TMLP_MACR(GeneralRecommender):
         pos_item_scores = torch.sigmoid(torch.matmul(pos_i_g_embeddings, self.w.weight))
         neg_item_scores = torch.sigmoid(torch.matmul(neg_i_g_embeddings, self.w.weight))
         if self.macr_user_branch:
-            user_scores = torch.sigmoid(torch.matmul(u_g_embeddings, self.w_user.weight))
+            user_scores = torch.sigmoid(
+                torch.matmul(u_g_embeddings, self.w_user.weight)
+            )
         else:
             user_scores = torch.ones_like(pos_item_scores)
 
-
-        
         pos_scores = pos_scores * pos_item_scores * user_scores
         neg_scores = neg_scores * neg_item_scores * user_scores
 
         mf_loss_ori = -torch.mean(F.logsigmoid(pos_scores - neg_scores))
 
         mf_loss_item = torch.mean(
-            torch.negative(torch.log(pos_item_scores) + 1e-10) + torch.negative(
-                torch.log(1 - neg_item_scores + 1e-10)))
+            torch.negative(torch.log(pos_item_scores) + 1e-10)
+            + torch.negative(torch.log(1 - neg_item_scores + 1e-10))
+        )
 
         if self.macr_user_branch:
-            mf_loss_user = torch.mean(torch.negative(torch.log(user_scores + 1e-10)) + torch.negative(
-                torch.log(1 - user_scores + 1e-10)))
+            mf_loss_user = torch.mean(
+                torch.negative(torch.log(user_scores + 1e-10))
+                + torch.negative(torch.log(1 - user_scores + 1e-10))
+            )
         else:
             mf_loss_user = 0
 
-        batch_mf_loss = mf_loss_ori + self.macr_alpha * mf_loss_item + self.macr_beta * mf_loss_user
-        
+        batch_mf_loss = (
+            mf_loss_ori + self.macr_alpha * mf_loss_item + self.macr_beta * mf_loss_user
+        )
 
         item_idx = torch.cat((pos_items, neg_items))
         ii_dis = self.get_feature_dis(ia_embeddings[item_idx])
@@ -280,8 +282,6 @@ class TMLP_MACR(GeneralRecommender):
         )
         reg_loss = self.reg_weight * (reg_embedding_loss_v + reg_embedding_loss_t)
 
-
-
         return batch_mf_loss + reg_loss + ncloss1
 
     def full_sort_predict(self, interaction):
@@ -298,10 +298,13 @@ class TMLP_MACR(GeneralRecommender):
         if not self.macr_user_branch:
             user_scores = torch.ones_like(user_scores)
 
-        rubi_rating_both = (scores - self.rubi_c) * (user_scores) * torch.transpose(
-            torch.sigmoid(item_scores), 0, 1)
+        rubi_rating_both = (
+            (scores - self.rubi_c)
+            * (user_scores)
+            * torch.transpose(torch.sigmoid(item_scores), 0, 1)
+        )
         return rubi_rating_both
-        #return scores
+        # return scores
 
     def Ncontrast(self, x_dis, adj_label, tau=1):
         """
@@ -411,28 +414,31 @@ class Base_gcn(MessagePassing):
         return "{}({},{})".format(
             self.__class__.__name__, self.in_channels, self.out_channels
         )
-    
+
+
 class GMLP(nn.Module):
-    def __init__(self, input_dim, hid_dim, dropout, output_dim=64, num_fc_layers=3, act_fn='gelu'):
+    def __init__(
+        self, input_dim, hid_dim, dropout, output_dim=64, num_fc_layers=3, act_fn="gelu"
+    ):
         super(GMLP, self).__init__()
         self.fc_layers = nn.ModuleList()
         for i in range(num_fc_layers):
             in_features = input_dim if i == 0 else hid_dim
             out_features = hid_dim if i < num_fc_layers - 1 else output_dim
             self.fc_layers.append(nn.Linear(in_features, out_features))
-        
+
         # Dictionary of activation functions
         activation_functions = {
-            'relu': F.relu,
-            'leaky_relu': F.leaky_relu,
-            'gelu': F.gelu,
-            'tanh': torch.tanh,
-            'sigmoid': torch.sigmoid,
-            'elu': F.elu,
-            'selu': F.selu,
-            'softplus': F.softplus
+            "relu": F.relu,
+            "leaky_relu": F.leaky_relu,
+            "gelu": F.gelu,
+            "tanh": torch.tanh,
+            "sigmoid": torch.sigmoid,
+            "elu": F.elu,
+            "selu": F.selu,
+            "softplus": F.softplus,
         }
-        
+
         # Set the activation function
         if act_fn in activation_functions:
             self.act_fn = activation_functions[act_fn]
@@ -441,7 +447,7 @@ class GMLP(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
         self.layernorm = nn.LayerNorm(hid_dim, eps=1e-6)
-        
+
         self._init_weights()
 
     def _init_weights(self):

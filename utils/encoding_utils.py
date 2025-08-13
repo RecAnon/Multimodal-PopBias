@@ -21,6 +21,7 @@ def InfoNCE(view1, view2, temperature: float, b_cos: bool = True):
     score = torch.diag(F.log_softmax(pos_score, dim=1))
     return -score.mean()
 
+
 def next_batch_pairwise_ood(data, batch_size, n_negs=1):
     training_data = data.training_data
     shuffle(training_data)

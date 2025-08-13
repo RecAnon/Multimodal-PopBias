@@ -32,9 +32,7 @@ item_idx = sorted(set([p[1] for p in training_data]))
 user_num = len(user_idx)
 item_num = len(item_idx)
 
-item_content = np.load("./data/%s/feats_concat.npy" % args.dataset).astype(
-    np.float32
-)
+item_content = np.load("./data/%s/feats_concat.npy" % args.dataset).astype(np.float32)
 
 model = Encoder(
     args,

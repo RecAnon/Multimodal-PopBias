@@ -142,10 +142,7 @@ class TMLP_ReSN(GeneralRecommender):
             act_fn=self.act_fn,
         )
         self.v_preference, self.t_preference = None, None
-        adj_tensor_path = os.path.join(
-            dataset_path,
-            config["adj_tensor_path"]
-        )
+        adj_tensor_path = os.path.join(dataset_path, config["adj_tensor_path"])
         self.adj_tensor = torch.load(adj_tensor_path).to(self.device)
         self.preference = self.gcn.preference
 
@@ -254,12 +251,12 @@ class TMLP_ReSN(GeneralRecommender):
 
         matrix_ = u_g_embeddings @ ia_embeddings.T
         UVe = matrix_.sum(dim=0, keepdim=True).T  # shape [num_items, 1]
-        q = UVe / torch.sqrt(torch.sum(UVe ** 2) + 1e-10)
+        q = UVe / torch.sqrt(torch.sum(UVe**2) + 1e-10)
         q = q.detach()
         regterm = torch.matmul(matrix_, q)
-        resnloss = torch.mean(regterm ** 2)
+        resnloss = torch.mean(regterm**2)
 
-        return batch_mf_loss + reg_loss + ncloss1 + self.resn_weight*resnloss
+        return batch_mf_loss + reg_loss + ncloss1 + self.resn_weight * resnloss
 
     def full_sort_predict(self, interaction):
         user = interaction[0]
@@ -379,28 +376,31 @@ class Base_gcn(MessagePassing):
         return "{}({},{})".format(
             self.__class__.__name__, self.in_channels, self.out_channels
         )
-    
+
+
 class GMLP(nn.Module):
-    def __init__(self, input_dim, hid_dim, dropout, output_dim=64, num_fc_layers=3, act_fn='gelu'):
+    def __init__(
+        self, input_dim, hid_dim, dropout, output_dim=64, num_fc_layers=3, act_fn="gelu"
+    ):
         super(GMLP, self).__init__()
         self.fc_layers = nn.ModuleList()
         for i in range(num_fc_layers):
             in_features = input_dim if i == 0 else hid_dim
             out_features = hid_dim if i < num_fc_layers - 1 else output_dim
             self.fc_layers.append(nn.Linear(in_features, out_features))
-        
+
         # Dictionary of activation functions
         activation_functions = {
-            'relu': F.relu,
-            'leaky_relu': F.leaky_relu,
-            'gelu': F.gelu,
-            'tanh': torch.tanh,
-            'sigmoid': torch.sigmoid,
-            'elu': F.elu,
-            'selu': F.selu,
-            'softplus': F.softplus
+            "relu": F.relu,
+            "leaky_relu": F.leaky_relu,
+            "gelu": F.gelu,
+            "tanh": torch.tanh,
+            "sigmoid": torch.sigmoid,
+            "elu": F.elu,
+            "selu": F.selu,
+            "softplus": F.softplus,
         }
-        
+
         # Set the activation function
         if act_fn in activation_functions:
             self.act_fn = activation_functions[act_fn]
@@ -409,7 +409,7 @@ class GMLP(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
         self.layernorm = nn.LayerNorm(hid_dim, eps=1e-6)
-        
+
         self._init_weights()
 
     def _init_weights(self):

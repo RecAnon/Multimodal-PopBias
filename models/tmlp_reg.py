@@ -55,7 +55,7 @@ class TMLP_REG(GeneralRecommender):
             self.device
         ), self.edge_values.to(self.device)
         self.edge_full_indices = torch.arange(self.edge_values.size(0)).to(self.device)
-        
+
         self.weights = self.get_weight()
 
         self.item_id_embedding = nn.Embedding(self.n_items, self.embedding_dim)
@@ -145,10 +145,7 @@ class TMLP_REG(GeneralRecommender):
             act_fn=self.act_fn,
         )
         self.v_preference, self.t_preference = None, None
-        adj_tensor_path = os.path.join(
-            dataset_path,
-            config["adj_tensor_path"]
-        )
+        adj_tensor_path = os.path.join(dataset_path, config["adj_tensor_path"])
         self.adj_tensor = torch.load(adj_tensor_path).to(self.device)
         self.preference = self.gcn.preference
 
@@ -224,7 +221,7 @@ class TMLP_REG(GeneralRecommender):
         mf_loss = -torch.mean(maxi)
 
         return mf_loss, bpr
-    
+
     def get_weight(self):
 
         pop = self.population_list
@@ -244,7 +241,9 @@ class TMLP_REG(GeneralRecommender):
         my = torch.mean(y)
         xm, ym = x - mx, y - my
         r_num = torch.sum(torch.mul(xm, ym))
-        r_den = torch.sqrt(torch.mul(torch.sum(torch.square(xm)), torch.sum(torch.square(ym))))
+        r_den = torch.sqrt(
+            torch.mul(torch.sum(torch.square(xm)), torch.sum(torch.square(ym)))
+        )
         # print(r_den)
         r = r_num / (r_den + 1e-5)
         r = torch.square(torch.clamp(r, -1, 1))
@@ -283,7 +282,7 @@ class TMLP_REG(GeneralRecommender):
         )
         reg_loss = self.reg_weight * (reg_embedding_loss_v + reg_embedding_loss_t)
 
-        corr_loss = self.rweight * self.get_correlation_loss(pos_weights,batch_bpr)
+        corr_loss = self.rweight * self.get_correlation_loss(pos_weights, batch_bpr)
 
         return batch_mf_loss + reg_loss + ncloss1 + corr_loss
 
@@ -318,6 +317,7 @@ class TMLP_REG(GeneralRecommender):
         mask = torch.eye(x_dis.shape[0], device=x.device)
         x_dis = (1 - mask) * x_dis
         return x_dis
+
 
 class GCN(torch.nn.Module):
     def __init__(
@@ -404,28 +404,31 @@ class Base_gcn(MessagePassing):
         return "{}({},{})".format(
             self.__class__.__name__, self.in_channels, self.out_channels
         )
-    
+
+
 class GMLP(nn.Module):
-    def __init__(self, input_dim, hid_dim, dropout, output_dim=64, num_fc_layers=3, act_fn='gelu'):
+    def __init__(
+        self, input_dim, hid_dim, dropout, output_dim=64, num_fc_layers=3, act_fn="gelu"
+    ):
         super(GMLP, self).__init__()
         self.fc_layers = nn.ModuleList()
         for i in range(num_fc_layers):
             in_features = input_dim if i == 0 else hid_dim
             out_features = hid_dim if i < num_fc_layers - 1 else output_dim
             self.fc_layers.append(nn.Linear(in_features, out_features))
-        
+
         # Dictionary of activation functions
         activation_functions = {
-            'relu': F.relu,
-            'leaky_relu': F.leaky_relu,
-            'gelu': F.gelu,
-            'tanh': torch.tanh,
-            'sigmoid': torch.sigmoid,
-            'elu': F.elu,
-            'selu': F.selu,
-            'softplus': F.softplus
+            "relu": F.relu,
+            "leaky_relu": F.leaky_relu,
+            "gelu": F.gelu,
+            "tanh": torch.tanh,
+            "sigmoid": torch.sigmoid,
+            "elu": F.elu,
+            "selu": F.selu,
+            "softplus": F.softplus,
         }
-        
+
         # Set the activation function
         if act_fn in activation_functions:
             self.act_fn = activation_functions[act_fn]
@@ -434,7 +437,7 @@ class GMLP(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
         self.layernorm = nn.LayerNorm(hid_dim, eps=1e-6)
-        
+
         self._init_weights()
 
     def _init_weights(self):
