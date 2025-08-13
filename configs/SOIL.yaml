@@ -1,0 +1,27 @@
+# SOIL
+embedding_size: 64
+n_ui_layers: 2
+n_layers: 1
+
+learning_rate_scheduler: [0.96, 50]
+lambda_coeff: 0.9
+reg_weight: 5e-04
+
+knn_k: 10
+knn_i: [5,10,15,20]
+knn_a: [3,5,10]
+
+learning_rate: 0.001
+
+cl_loss: [0.001,0.01,0.1]
+cl_loss2: [0.001,0.01,0.1]
+
+
+hyper_parameters: ["cl_loss","cl_loss2","knn_i","knn_a"]
+
+# training settings
+epochs: 1000
+stopping_step: 20
+train_batch_size: 2048
+learner: adam
+eval_step: 1

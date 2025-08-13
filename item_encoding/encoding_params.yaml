@@ -1,0 +1,8 @@
+decay_lr_epoch: [True,50]
+reg: 0.05
+tau: 0.2
+lr: 0.001
+t_weight: 0.9
+bs: 4096
+emb_size: 64
+topN: [20]
